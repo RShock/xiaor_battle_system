@@ -1,13 +1,11 @@
-from lagom import Container
+import unittest
 
 from xiaor_battle_system.gameBoard import GameBoard
 from xiaor_battle_system.logger import Logger
 from xiaor_battle_system.msgManager import MsgManager
 from xiaor_battle_system.pokemon import Pokemon
-from xiaor_battle_system.tools.stream import Stream
 from xiaor_battle_system.tools.tools import get_container
 
-import unittest
 
 class TestCases(unittest.TestCase):
     container = None
@@ -124,6 +122,13 @@ class TestCases(unittest.TestCase):
         self.result = self.gameBoard.battle()
         self.assertEqual(self.pkm1.HP, 1000)
         self.assertEqual(self.pkm2.HP, 930)
+
+    def test猛毒(self):
+        self.pkm1.skillGroup = ["毒液50","猛毒200"]
+        self.gameBoard.init()
+        self.result = self.gameBoard.battle()
+        self.assertEqual(self.pkm1.HP, 930)
+        self.assertEqual(self.pkm2.HP, 610)
 
 
 if __name__ == '__main__':

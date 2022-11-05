@@ -230,7 +230,7 @@ class Pokemon:
 
         if skill.startswith("地区霸主"):
             self.logger.log(f"看起来这片区域的主人出现了...")
-            change_atk(self, skill, multi(1.331))   # 相当于高3级的敌人(1.1^3)
+            change_atk(self, skill, multi(1.331))  # 相当于高3级的敌人(1.1^3)
             change_def(self, skill, multi(1.331))
             change_hp(self, skill, multi(1.331))
             # 技能槽位的增加目前仅仅存在于设定之中，怪物的技能数量其实是填表决定的，并非靠这个技能获得
@@ -247,9 +247,9 @@ class Pokemon:
             # 回合结束时，强制解除所有中毒debuff
 
             def del_poison_buff(pack: MsgPack):
-                self.msg_manager.get_buff_stream()\
-                    .filter(lambda b: b.check_tag(BuffTag.POISON_DEBUFF))\
-                    .filter(lambda b: b.check_owner(self))\
+                self.msg_manager.get_buff_stream() \
+                    .filter(lambda b: b.check_tag(BuffTag.POISON_DEBUFF)) \
+                    .filter(lambda b: b.check_owner(self)) \
                     .for_each(lambda b: b.mark_as_delete(f"{self.name}解除了自己中的毒"))
 
             self.msg_manager.register(
@@ -257,6 +257,13 @@ class Pokemon:
 
             return
 
+        if skill.startswith("猛毒"):
+            self.logger.log(f"{self.name}的猛毒发动了！毒伤害增加了{num}%")
+            self.msg_manager.register(
+                new_buff(self, Trigger.DEAL_DAMAGE).name(skill).checker(is_self())
+                .checker(lambda pack: pack.check_damage_type(DamageType.POISON))
+                .handler(lambda pack: pack.damage(pack.get_damage() * (100 + num)/100)))
+            return
         raise Exception(f"不认识的技能：{skill}")
 
 

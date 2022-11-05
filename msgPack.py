@@ -145,7 +145,7 @@ class MsgPack:
 
     # 受到的伤害（来自be_attack）
     def damage(self, num) -> "MsgPack":
-        self.data["damage"] = num
+        self.data["damage"] = int(num)
         return self
 
     def get_damage(self) -> int:

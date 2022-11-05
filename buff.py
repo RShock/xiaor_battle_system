@@ -9,6 +9,7 @@ from xiaor_battle_system.enums import Trigger
 
 
 class Buff:
+
     def __init__(self, logger: Logger) -> None:
         self.logger = logger
         self._name = "未定义"  # buff的名字
@@ -17,26 +18,26 @@ class Buff:
         self._time = 9999  # buff持续的时间，9999为无限
         self._owner = None  # 拥有者
         self._tag = []  # 这个Buff拥有的标签
-        self._del_msg = None # 删除标签时的提示
+        self._del_msg = None  # 删除标签时的提示
+        self._checker: list[Callable[[MsgPack], bool]] = []  # 这里传入一个函数，函数为真值则继续执行
+
+        def default_handler(pack):
+            self.logger.log(f"触发了{self._name}的默认行为")
+
+        self._handler: Callable[[MsgPack], None] = default_handler
 
     def __str__(self) -> str:
         return f"【{self._owner}_{self._name}_{self.trigger}】"
 
-    def default_checker(self, pack):
-        return True
-
-    def default_handler(self, pack):
-        self.logger.log(f"触发了{self._name}的默认行为")
-
-    _checker: Callable[[Any], bool] = default_checker  # 这里传入一个函数，函数为真值则继续执行
-    _handler: Callable[[Any], None] = default_handler
+    # def default_checker(self, pack):
+    #     return True
 
     def name(self, name: str) -> "Buff":
         self._name = name
         return self
 
     def checker(self, checker: Callable[[Any], bool]) -> "Buff":
-        self._checker = checker
+        self._checker.append(checker)
         return self
 
     def handler(self, handler: Callable[[MsgPack], None]) -> "Buff":
@@ -46,7 +47,10 @@ class Buff:
     def check(self, pack: MsgPack) -> bool:
         pack.buff_name(self._name)
         pack.buff_owner(self._owner)
-        return self._checker(pack)
+        for c in self._checker:
+            if not c(pack):
+                return False
+        return True
 
     def handle(self, pack) -> None:
         pack.buff_name(self._name)
