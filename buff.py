@@ -1,0 +1,92 @@
+from typing import Callable, Any
+
+from lagom import Container
+
+from xiaor_battle_system.logger import Logger
+from xiaor_battle_system.msgPack import MsgPack
+from xiaor_battle_system.tools.tools import get_container
+from xiaor_battle_system.enums import Trigger
+
+
+class Buff:
+    def __init__(self, logger: Logger) -> None:
+        self.logger = logger
+        self._name = "未定义"  # buff的名字
+        self.anti = []  # 这个buff施加后，这里面的buff将无法施加，存储内容为buff的名字
+        self.trigger: int = None  # buff施加的时机
+        self._time = 9999  # buff持续的时间，9999为无限
+        self._owner = None  # 拥有者
+        self._tag = []  # 这个Buff拥有的标签
+        self._del_msg = None # 删除标签时的提示
+
+    def __str__(self) -> str:
+        return f"【{self._owner}_{self._name}_{self.trigger}】"
+
+    def default_checker(self, pack):
+        return True
+
+    def default_handler(self, pack):
+        self.logger.log(f"触发了{self._name}的默认行为")
+
+    _checker: Callable[[Any], bool] = default_checker  # 这里传入一个函数，函数为真值则继续执行
+    _handler: Callable[[Any], None] = default_handler
+
+    def name(self, name: str) -> "Buff":
+        self._name = name
+        return self
+
+    def checker(self, checker: Callable[[Any], bool]) -> "Buff":
+        self._checker = checker
+        return self
+
+    def handler(self, handler: Callable[[MsgPack], None]) -> "Buff":
+        self._handler = handler
+        return self
+
+    def check(self, pack: MsgPack) -> bool:
+        pack.buff_name(self._name)
+        pack.buff_owner(self._owner)
+        return self._checker(pack)
+
+    def handle(self, pack) -> None:
+        pack.buff_name(self._name)
+        return self._handler(pack)
+
+    def time(self, time: int) -> "Buff":
+        self._time = time
+        return self
+
+    def get_time(self):
+        return self._time
+
+    def time_pass(self):
+        self._time -= 1
+
+    def mark_as_delete(self, msg=None):
+        if msg:
+            self._del_msg = msg
+        self._time = -1
+
+    def owner(self, owner) -> "Buff":
+        self._owner = owner
+        return self
+
+    def tag(self, tag) -> "Buff":
+        self._tag.append(tag)
+        return self
+
+    def check_tag(self, tag):
+        return tag in self._tag
+
+    def check_owner(self, owner):
+        return self._owner == owner
+
+    def get_del_msg(self):
+        return self._del_msg
+
+
+def new_buff(owner: "Pokemon", trigger: Trigger) -> "Buff":
+    tmp = get_container()[Buff]
+    tmp.trigger = trigger
+    tmp._owner = owner
+    return tmp
