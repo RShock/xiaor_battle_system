@@ -42,13 +42,15 @@ class Pokemon:
             tmp = 0
         percent = pack.get_percent()
         dmg = tmp * percent // 100
-        # enemy.HP -= dmg
-        pack2 = MsgPack.damage_pack(our, pack.owner(), dmg, DamageType.NORMAL)
+
+        # 发送即将造成伤害的包，以此计算属性增减伤等属性
+        pack2 = MsgPack.damage_pack(our, pack.get_enemy(), dmg, DamageType.NORMAL)
         self.msg_manager.send_msg(pack2)
         enemy.HP -= pack2.get_damage()
         self.logger.log(f"{our.name}对{enemy.name}造成了{dmg}点伤害，{enemy.name}还有{enemy.HP}点血")
-        if pack.check_trigger(Trigger.ATTACK):
-            self.msg_manager.send_msg(MsgPack.be_atk_pack().our(enemy).enemy(our).damage(dmg))
+        # 被打了，再发一个包
+        pack3 = MsgPack.taken_damage_pack(pack.get_enemy(), our, pack2.get_damage(), Trigger.ATTACK, DamageType.NORMAL)
+        self.msg_manager.send_msg(pack3)
 
         if enemy.HP <= 0:
             return True
@@ -67,7 +69,7 @@ class Pokemon:
             .handler(attack_handle))
 
         Stream(self.skillGroup).for_each(lambda skill: self.init_skill(skill))
-        self.HP = self.MAX_HP = self.get_hp()
+        self.HP = self.MAX_HP = self.get_max_hp()
 
     def attack(self, enemy: "Pokemon"):
         self.logger.log(f"{self.name}的攻击")
@@ -83,10 +85,10 @@ class Pokemon:
         self.msg_manager.send_msg(pack)
         return pack.get_def()
 
-    def get_hp(self):
-        pack = MsgPack.get_hp_pack().hp(self.HP).our(self)
+    def get_max_hp(self):
+        pack = MsgPack.get_max_hp_pack().hp(self.HP).our(self)
         self.msg_manager.send_msg(pack)
-        return pack.get_hp()
+        return pack.get_max_hp()
 
     def get_life_inc_spd(self):
         pack = MsgPack.get_life_inc_spd_pack().life_inc_spd(1).our(self)
@@ -139,11 +141,17 @@ class Pokemon:
                 self.logger.log(f"{our.name}的攻击！{enemy.name}中毒了！受到每回合{damage}点的伤害（持续2回合）")
 
                 def _(pack: MsgPack):
-                    pack = MsgPack.damage_pack(our, pack.owner(), damage, DamageType.POISON)
-                    self.msg_manager.send_msg(pack)
-                    enemy.HP -= pack.get_damage()
-                    self.logger.log(f"{enemy.name}中毒了，流失了{pack.get_damage()}点血量，当前hp{enemy.HP}")
+                    # 发送即将造成伤害的包，以此计算属性增减伤等属性
+                    pack2 = MsgPack.damage_pack(our, pack.get_owner(), damage, DamageType.POISON)
+                    self.msg_manager.send_msg(pack2)
+                    enemy.HP -= pack2.get_damage()
+                    # 受到伤害后发包，死亡结算也在这里进行，所以就算是无源伤害（被毒死）也得发
+                    MsgPack.taken_damage_pack(pack.get_owner(), None, pack2.get_damage(), Trigger.TURN_END,
+                                              DamageType.POISON)
+                    self.logger.log(f"{enemy.name}中毒了，流失了{pack2.get_damage()}点血量，当前hp{enemy.HP}")
 
+                # 毒buff会直接挂载在敌人身上（无源伤害），taken_damage_pack包的enemy参数会被设为空
+                # 哪怕我方有无法造成伤害的debuff，毒也能正常工作
                 self.msg_manager.register(new_buff(self, Trigger.TURN_END).owner(enemy).name("【中毒】").
                                           tag(BuffTag.POISON_DEBUFF).handler(_).time(2))
 
@@ -159,7 +167,7 @@ class Pokemon:
 
             # 每回合攻击2次
             def attack_handle(pack: MsgPack):
-                self.logger.log(f"{pack.owner().name}追加连击")
+                self.logger.log(f"{pack.get_owner().name}追加连击")
                 Pokemon._attack(self, pack)
 
             self.msg_manager.register(
@@ -171,11 +179,12 @@ class Pokemon:
 
             def _handle(pack: MsgPack):
                 pack.perfw().percent(num)
-                self.logger.log(f"{pack.owner().name}的反击！")
+                self.logger.log(f"{pack.get_owner().name}的反击！")
                 Pokemon._attack(self, pack)
 
             self.msg_manager.register(
-                new_buff(self, Trigger.BE_ATTACK).name("【反击】").checker(is_self()).handler(_handle))
+                new_buff(self, Trigger.TAKEN_DAMAGE).name("【反击】").checker(is_self())
+                .checker(lambda pack: pack.check_damage_taken_trigger(Trigger.ATTACK)).handler(_handle))
             return
 
         if skill.startswith("不屈"):
@@ -205,7 +214,7 @@ class Pokemon:
             def gain_hp(pack):
                 hp_gained = min(num * self.get_life_inc_spd(), self.MAX_HP - self.HP)
                 self.HP += hp_gained
-                self.logger.log(f"{pack.owner().name}的【愈合】发动了！回复了{hp_gained}点生命值({self.HP})")
+                self.logger.log(f"{pack.get_owner().name}的【愈合】发动了！回复了{hp_gained}点生命值({self.HP})")
 
             self.msg_manager.register(
                 new_buff(self, Trigger.TURN_END).name(skill).handler(gain_hp))
@@ -262,8 +271,42 @@ class Pokemon:
             self.msg_manager.register(
                 new_buff(self, Trigger.DEAL_DAMAGE).name(skill).checker(is_self())
                 .checker(lambda pack: pack.check_damage_type(DamageType.POISON))
-                .handler(lambda pack: pack.damage(pack.get_damage() * (100 + num)/100)))
+                .handler(lambda pack: pack.damage(pack.get_damage() * (100 + num) / 100)))
             return
+
+        if skill.startswith("暴怒"):
+            self.logger.log(f"{self.name}的暴怒发动了！受伤越重伤害越高，最高增加{num}%！")
+
+            def change_atk_by_anger(pack: MsgPack):
+                our: Pokemon = pack.get_our()
+                max_hp = our.get_max_hp()
+                hp = pack.get_our().HP
+                percent = int((1 - hp / max_hp) * 100)
+                pack.change_atk(add_percent(percent))
+
+            self.msg_manager.register(
+                new_buff(self, Trigger.GET_ATK).name(skill).checker(is_self()).handler(
+                    lambda pack: change_atk_by_anger(pack)))
+            return
+
+        if skill.startswith("惜别"):
+            self.logger.log(f"{self.name}的暴怒发动了！受伤越重伤害越高，最高增加{num}%！")
+            switch = True
+
+            def tear(pack: MsgPack):
+                our: Pokemon = pack.get_our()
+                global switch
+                if switch and our.HP < 0:
+                    self.logger.log(f"濒死之际，一股意志支撑{our.name}又活了过来")
+                    our.HP = 1
+                    switch = False
+
+            self.msg_manager.register(
+                new_buff(self, Trigger.TAKEN_DAMAGE).name(skill).checker(is_enemy()).handler(
+                    lambda pack: tear(pack)
+                )
+            )
+
         raise Exception(f"不认识的技能：{skill}")
 
 

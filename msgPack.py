@@ -1,6 +1,8 @@
 from xiaor_battle_system.enums import Trigger, DamageType
 
 
+# 一坨getter和setter 用来保证不会写错变量名
+# 虽然写的很挫但是py没有lombok只能这样了
 class MsgPack:
     def __init__(self) -> None:
         self.data = {}  # 数据
@@ -43,11 +45,11 @@ class MsgPack:
     def change_def(self, apply) -> None:
         self.data["def"] = apply(self.get_def())
 
-    def get_hp(self) -> int:
+    def get_max_hp(self) -> int:
         return self.data["hp"]
 
     def change_hp(self, apply) -> None:
-        self.data["hp"] = apply(self.get_hp())
+        self.data["hp"] = apply(self.get_max_hp())
 
     def change_spd(self, apply) -> None:
         self.data["spd"] = apply(self.get_spd())
@@ -101,7 +103,7 @@ class MsgPack:
         self.data["enemy"] = enemy
         return self
 
-    def get_our(self):
+    def get_our(self) -> "Pokemon":
         return self.data["our"]
 
     def get_enemy(self):
@@ -118,14 +120,14 @@ class MsgPack:
         self.data["buff_owner"] = buff_owner
         return self
 
-    def owner(self):
+    def get_owner(self):
         return self.data["buff_owner"]
 
     def check_owner(self, owner):
         return owner.id == self.data["buff_owner"].id
 
     def check_buff_name(self, buff_name: str):
-        return self.data["buff_name"].__contains__(buff_name)
+        return buff_name in self.data["buff_name"]
 
     # 开启穿透伤害（来自attack）
     def perfw(self) -> "MsgPack":
@@ -161,6 +163,14 @@ class MsgPack:
     def check_damage_type(self, type):
         return self.data["damage_type"] == type
 
+    # 受到伤害时，造成伤害的触发器。如果是攻击触发，容易造成反击。毒触发则不会。
+    def damage_taken_trigger(self, tri: Trigger):
+        self.data["damage_taken_trigger"] = tri
+        return self
+
+    def check_damage_taken_trigger(self, tri: Trigger):
+        return self.data["damage_taken_trigger"] == tri
+
     def __str__(self) -> str:
         return f"{self.data}"
 
@@ -177,7 +187,7 @@ class MsgPack:
         return MsgPack.builder().trigger_type(Trigger.GET_DEF)
 
     @staticmethod
-    def get_hp_pack():
+    def get_max_hp_pack():
         return MsgPack.builder().trigger_type(Trigger.GET_HP)
 
     @staticmethod
@@ -196,10 +206,15 @@ class MsgPack:
     def turn_end_pack():
         return MsgPack.builder().trigger_type(Trigger.TURN_END)
 
-    @staticmethod
-    def be_atk_pack():
-        return MsgPack.builder().trigger_type(Trigger.BE_ATTACK)
+    # @staticmethod
+    # def be_atk_pack():
+    #     return MsgPack.builder().trigger_type(Trigger.BE_ATTACK)
 
     @staticmethod
     def damage_pack(our, enemy, num, type: DamageType = DamageType.NORMAL):
         return MsgPack.builder().trigger_type(Trigger.DEAL_DAMAGE).damage_type(type).damage(num).our(our).enemy(enemy)
+
+    @staticmethod
+    def taken_damage_pack(our, enemy, num, taken_trigger: Trigger, type: DamageType = DamageType.NORMAL):
+        return MsgPack.builder().trigger_type(Trigger.TAKEN_DAMAGE).damage_type(type).damage(num).our(our).enemy(enemy) \
+            .damage_taken_trigger(taken_trigger)
