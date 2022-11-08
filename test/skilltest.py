@@ -22,7 +22,6 @@ class TestCases(unittest.TestCase):
         cls.msgManager = cls.container[MsgManager] = MsgManager(cls.container[Logger])
         cls.gameBoard = cls.container[GameBoard] = GameBoard(cls.container[Logger], cls.container[MsgManager])
 
-
     def setUp(self) -> None:
         self.gameBoard = self.container[GameBoard]
         self.gameBoard.TURN_LIMIT = 8
@@ -54,91 +53,103 @@ class TestCases(unittest.TestCase):
         # pkm2.skillGroup = ["反击50"]
         self.gameBoard.init()
         self.result = self.gameBoard.battle()
-        self.assertEqual(self.pkm1.HP, 930)
-        self.assertEqual(self.pkm2.HP, 1000)
+        self.assertEqual(self.pkm1.hp, 930)
+        self.assertEqual(self.pkm2.hp, 1000)
 
     def test反击对连击正常反应(self):
         self.pkm1.skillGroup = ["连击"]
         self.pkm2.skillGroup = ["反击50"]
         self.gameBoard.init()
         self.result = self.gameBoard.battle()
-        self.assertEqual(self.pkm1.HP, 790)
-        self.assertEqual(self.pkm2.HP, 1000)
+        self.assertEqual(self.pkm1.hp, 790)
+        self.assertEqual(self.pkm2.hp, 1000)
 
     def test03(self):
         self.pkm2.skillGroup = ["愈合1"]
         self.gameBoard.init()
         self.result = self.gameBoard.battle()
-        self.assertEqual(self.pkm1.HP, 930)
-        self.assertEqual(self.pkm2.HP, 937)
+        self.assertEqual(self.pkm1.hp, 930)
+        self.assertEqual(self.pkm2.hp, 937)
 
     def test测试2个回血技能(self):
-        self.pkm2.skillGroup = ["愈合1","长生"]
+        self.pkm2.skillGroup = ["愈合1", "长生"]
         self.gameBoard.init()
         self.result = self.gameBoard.battle()
-        self.assertEqual(self.pkm1.HP, 930)
-        self.assertEqual(self.pkm2.HP, 944)
+        self.assertEqual(self.pkm1.hp, 930)
+        self.assertEqual(self.pkm2.hp, 944)
 
     def test毒攻击(self):
         self.pkm1.skillGroup = ["毒液50"]
         self.gameBoard.init()
         self.result = self.gameBoard.battle()
-        self.assertEqual(self.pkm1.HP, 930)
-        self.assertEqual(self.pkm2.HP, 870)
+        self.assertEqual(self.pkm1.hp, 930)
+        self.assertEqual(self.pkm2.hp, 870)
 
     def test毒攻击无法被反击(self):
         self.pkm1.skillGroup = ["毒液50", "连击", "利爪10"]
         self.pkm2.skillGroup = ["反击"]
         self.gameBoard.init()
         self.result = self.gameBoard.battle()
-        self.assertEqual(self.pkm1.HP, 930)
-        self.assertEqual(self.pkm2.HP, 870)
+        self.assertEqual(self.pkm1.hp, 930)
+        self.assertEqual(self.pkm2.hp, 870)
 
     def test连击会导致攻击力归零(self):
         self.pkm1.skillGroup = ["毒液50", "连击"]
         self.gameBoard.init()
         self.result = self.gameBoard.battle()
-        self.assertEqual(self.pkm1.HP, 930)
-        self.assertEqual(self.pkm2.HP, 1000)
+        self.assertEqual(self.pkm1.hp, 930)
+        self.assertEqual(self.pkm2.hp, 1000)
 
     def test剧毒之体(self):
         self.pkm1.skillGroup = ["毒液50", "剧毒之体"]
         self.gameBoard.init()
         self.result = self.gameBoard.battle()
-        self.assertEqual(self.pkm1.HP, 930)
-        self.assertEqual(self.pkm2.HP, 740)
+        self.assertEqual(self.pkm1.hp, 930)
+        self.assertEqual(self.pkm2.hp, 740)
 
     def test剧毒之体无法造成普通伤害(self):
         self.pkm1.skillGroup = ["剧毒之体"]
         self.gameBoard.init()
         self.result = self.gameBoard.battle()
-        self.assertEqual(self.pkm1.HP, 930)
-        self.assertEqual(self.pkm2.HP, 1000)
+        self.assertEqual(self.pkm1.hp, 930)
+        self.assertEqual(self.pkm2.hp, 1000)
 
     def test剧毒之体回合结束会强制解毒(self):
         self.pkm1.skillGroup = ["毒液50"]
         self.pkm2.skillGroup = ["剧毒之体"]
         self.gameBoard.init()
         self.result = self.gameBoard.battle()
-        self.assertEqual(self.pkm1.HP, 1000)
-        self.assertEqual(self.pkm2.HP, 930)
+        self.assertEqual(self.pkm1.hp, 1000)
+        self.assertEqual(self.pkm2.hp, 930)
 
     def test猛毒(self):
-        self.pkm1.skillGroup = ["毒液50","猛毒200"]
+        self.pkm1.skillGroup = ["毒液50", "猛毒200"]
         self.gameBoard.init()
         self.result = self.gameBoard.battle()
-        self.assertEqual(self.pkm1.HP, 930)
-        self.assertEqual(self.pkm2.HP, 610)
+        self.assertEqual(self.pkm1.hp, 930)
+        self.assertEqual(self.pkm2.hp, 610)
 
     def test惜别(self):
         self.pkm1.skillGroup = ["惜别"]
-        self.pkm1.HP = 10
+        self.pkm1.MAX_HP = 10
         self.pkm2.skillGroup = ["惜别"]
-        self.pkm2.HP = 10
+        self.pkm2.MAX_HP = 10
         self.gameBoard.init()
         self.result = self.gameBoard.battle()
-        self.assertEqual(self.pkm1.HP, 1)
-        self.assertEqual(self.pkm2.HP, -9)
+        self.assertEqual(self.pkm1.hp, 1)
+        self.assertEqual(self.pkm2.hp, -9)
+
+    def test暴怒(self):
+        self.pkm1.skillGroup = ["惜别", "暴怒1000"]
+        self.pkm1.hp = 1000
+        self.pkm2.skillGroup = ["惜别", "暴怒1000"]
+        self.pkm2.hp = 1000
+        self.gameBoard.init()
+        self.pkm1.hp = 1
+        self.pkm2.hp = 1
+        self.result = self.gameBoard.battle()
+        self.assertEqual(self.pkm1.hp, 1)
+        self.assertEqual(self.pkm2.hp, -208)
 
 
 if __name__ == '__main__':
@@ -148,5 +159,5 @@ if __name__ == '__main__':
 def data_init(pkm: Pokemon):
     pkm.ATK = 20
     pkm.DEF = 10
-    pkm.HP = 1000
+    pkm.MAX_HP = 1000
     pkm.skillGroup = []

@@ -15,8 +15,8 @@ class Pokemon:
         self.name = "÷生"
         self.ATK = 20
         self.DEF = 10
-        self.HP = 100
-        self.MAX_HP = 100
+        self.hp = 100       # 血量（随着战斗变化）
+        self.MAX_HP = 100       # 血量上限
         self.SPD = 10  # 速度
         self.id = uuid.uuid1()
         self.lv = 1
@@ -56,30 +56,31 @@ class Pokemon:
         # 发送即将造成伤害的包，以此计算属性增减伤等属性
         pack2 = MsgPack.damage_pack(our, pack.get_enemy(), dmg, DamageType.NORMAL)
         self.msg_manager.send_msg(pack2)
-        enemy.HP -= pack2.get_damage()
-        self.logger.log(f"{our.name}对{enemy.name}造成了{dmg}点伤害，{enemy.name}还有{enemy.HP}点血")
+        enemy.hp -= pack2.get_damage()
+        self.logger.log(f"{our.name}对{enemy.name}造成了{dmg}点伤害，{enemy.name}还有{enemy.hp}点血")
         # 被打了，再发一个包
         pack3 = MsgPack.taken_damage_pack(pack.get_enemy(), our, pack2.get_damage(), Trigger.ATTACK, DamageType.NORMAL)
         self.msg_manager.send_msg(pack3)
 
-        if enemy.HP <= 0:
+        if enemy.hp <= 0:
             return True
         return False
 
     def init(self):
+        # 为每个角色注册普攻技能 普攻每个人都有
         def attack_handle(pack: MsgPack):
             Pokemon._attack(self, pack)
             return
 
-        # 普攻每个人都有
         self.msg_manager.register(
             new_buff(self, Trigger.ATTACK)
             .name(f"{self.name}的【普攻】")
             .checker(is_self())
             .handler(attack_handle))
 
+        # 为每个角色注册自己的独有技能
         Stream(self.skillGroup).for_each(lambda skill: self.init_skill(skill))
-        self.HP = self.MAX_HP = self.get_max_hp()
+        self.hp = self.get_max_hp()   # 初始化生命值为最大生命值
 
     def attack(self, enemy: "Pokemon"):
         self.logger.log(f"{self.name}的攻击")
@@ -96,7 +97,7 @@ class Pokemon:
         return pack.get_def()
 
     def get_max_hp(self):
-        pack = MsgPack.get_max_hp_pack().hp(self.HP).our(self)
+        pack = MsgPack.get_max_hp_pack().hp(self.MAX_HP).our(self)
         self.msg_manager.send_msg(pack)
         return pack.get_max_hp()
 
@@ -154,11 +155,11 @@ class Pokemon:
                     # 发送即将造成伤害的包，以此计算属性增减伤等属性
                     pack2 = MsgPack.damage_pack(our, pack.get_owner(), damage, DamageType.POISON)
                     self.msg_manager.send_msg(pack2)
-                    enemy.HP -= pack2.get_damage()
+                    enemy.hp -= pack2.get_damage()
                     # 受到伤害后发包，死亡结算也在这里进行，所以就算是无源伤害（被毒死）也得发
                     MsgPack.taken_damage_pack(pack.get_owner(), None, pack2.get_damage(), Trigger.TURN_END,
                                               DamageType.POISON)
-                    self.logger.log(f"{enemy.name}中毒了，流失了{pack2.get_damage()}点血量，当前hp{enemy.HP}")
+                    self.logger.log(f"{enemy.name}中毒了，流失了{pack2.get_damage()}点血量，当前hp{enemy.hp}")
 
                 # 毒buff会直接挂载在敌人身上（无源伤害），taken_damage_pack包的enemy参数会被设为空
                 # 哪怕我方有无法造成伤害的debuff，毒也能正常工作
@@ -222,9 +223,9 @@ class Pokemon:
             self.logger.log(f"{self.name}的【愈合】发动了！每回合回复{num}点生命值")
 
             def gain_hp(pack):
-                hp_gained = min(num * self.get_life_inc_spd(), self.MAX_HP - self.HP)
-                self.HP += hp_gained
-                self.logger.log(f"{pack.get_owner().name}的【愈合】发动了！回复了{hp_gained}点生命值({self.HP})")
+                hp_gained = min(num * self.get_life_inc_spd(), self.MAX_HP - self.hp)
+                self.hp += hp_gained
+                self.logger.log(f"{pack.get_owner().name}的【愈合】发动了！回复了{hp_gained}点生命值({self.hp})")
 
             self.msg_manager.register(
                 new_buff(self, Trigger.TURN_END).name(skill).handler(gain_hp))
@@ -290,8 +291,8 @@ class Pokemon:
             def change_atk_by_anger(pack: MsgPack):
                 our: Pokemon = pack.get_our()
                 max_hp = our.get_max_hp()
-                hp = pack.get_our().HP
-                percent = int((1 - hp / max_hp) * 100)
+                hp = pack.get_our().hp
+                percent = int((1 - hp / max_hp) * num)
                 pack.change_atk(add_percent(percent))
 
             self.msg_manager.register(
@@ -300,14 +301,13 @@ class Pokemon:
             return
 
         if skill.startswith("惜别"):
-            global switch
             TAG = "惜别已使用"
 
             def tear(pack: MsgPack):
                 our: Pokemon = pack.get_our()
-                if not our.check_tag(TAG) and our.HP <= 0:
+                if not our.check_tag(TAG) and our.hp <= 0:
                     self.logger.log(f"濒死之际，一股意志支撑{our.name}又活了过来")
-                    our.HP = 1
+                    our.hp = 1
                     our.add_tag(TAG)
 
             self.msg_manager.register(
