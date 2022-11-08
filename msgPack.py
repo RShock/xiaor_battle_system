@@ -63,17 +63,11 @@ class MsgPack:
     def check_name(self, name) -> bool:
         return self.data["name"] == name
 
-    def check_id(self, ID) -> bool:
-        return self.data["our"].id == ID
-
     def is_our_owner(self) -> bool:
-        return self.data["our"].id == self.data["buff_owner"].id
-
-    def check_enemy_id(self, ID) -> bool:
-        return self.data["enemy"].id == ID
+        return self.data["our"] == self.data["buff_owner"]
 
     def is_enemy_owner(self) -> bool:
-        return self.data["enemy"].id == self.data["buff_owner"].id
+        return self.data["enemy"] == self.data["buff_owner"]
 
     def check_trigger(self, trigger) -> bool:
         return self.data["trigger_type"] == trigger

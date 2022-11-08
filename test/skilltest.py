@@ -159,6 +159,13 @@ class TestCases(unittest.TestCase):
         self.assertEqual(self.pkm1.hp, 1)
         self.assertEqual(self.pkm2.hp, -208)
 
+    def test诅咒(self):
+        self.pkm1.skillGroup = ["诅咒50"]
+        self.gameBoard.init()
+        self.result = self.gameBoard.battle()
+        self.assertEqual(self.pkm1.hp, 1)
+        self.assertEqual(self.pkm2.hp, -9)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -27,6 +27,9 @@ class Pokemon:
     def __str__(self) -> str:
         return f"【{self.name} 技能列表:{self.skillGroup}】"
 
+    def __eq__(self, other):
+        return self.id == other.id
+
     def read_pokemon_data(self):
         return
 
@@ -317,6 +320,12 @@ class Pokemon:
             )
             return
 
+        if skill.startswith("诅咒"):
+            self.logger.log(f"{self.name}凝视着敌人，让它攻击力下降了{num}%")
+            self.msg_manager.register(
+                new_buff(self, Trigger.GET_ATK).name(skill).checker(is_enemy()).handler(
+                    lambda pack: pack.change_atk(add_percent(-num))))
+            return
         raise Exception(f"不认识的技能：{skill}")
 
 
@@ -337,6 +346,13 @@ def is_self():
 def is_enemy():
     def _(pack: MsgPack):
         return pack.is_enemy_owner()
+
+    return _
+
+
+def is_pokemon(p:Pokemon):
+    def _(pack: MsgPack):
+        return pack.get_our() == p
 
     return _
 

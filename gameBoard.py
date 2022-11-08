@@ -25,6 +25,9 @@ class GameBoard:
         self.our.init()
         self.enemy.init()
 
+    def get_enemy(self) -> Pokemon:
+        return self.enemy
+
     def battle(self):
         # 第一步比较速度
         our: Pokemon = self.our
