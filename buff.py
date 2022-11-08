@@ -14,7 +14,7 @@ class Buff:
         self.logger = logger
         self._name = "未定义"  # buff的名字
         self.anti = []  # 这个buff施加后，这里面的buff将无法施加，存储内容为buff的名字
-        self.trigger: int = None  # buff施加的时机
+        self.trigger: Trigger = None  # buff施加的时机
         self._time = 9999  # buff持续的时间，9999为无限
         self._owner = None  # 拥有者
         self._tag = []  # 这个Buff拥有的标签

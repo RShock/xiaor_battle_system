@@ -29,7 +29,7 @@ class MsgPack:
 
     def trigger_type(self, trigger_type) -> "MsgPack":
         if self.data.get("trigger_type") is not None:
-            print("警告...")
+            raise "警告，请勿循环使用同一个pack"
         self.data["trigger_type"] = trigger_type
         return self
 

@@ -47,6 +47,14 @@ class TestCases(unittest.TestCase):
         else:
             print(f"{self.pkm1.name}战败！")
 
+    def test发烟测试(self):
+        self.pkm1.MAX_HP = 30
+        self.pkm2.MAX_HP = 30
+        self.gameBoard.init()
+        self.result = self.gameBoard.battle()
+        self.assertEqual(self.pkm1.hp, 10)
+        self.assertEqual(self.pkm2.hp, 0)
+
     def test连击(self):
         self.pkm1.skillGroup = ["连击"]
 

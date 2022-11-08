@@ -61,10 +61,10 @@ class GameBoard:
 
     def death_check(self, our:Pokemon, enemy:Pokemon) -> bool:
         # 死亡结算
-        if our.hp < 0:
+        if our.hp <= 0:
             self.logger.log(f"{self.our.name}倒下了...")
             return True
-        if enemy.hp < 0:
+        if enemy.hp <= 0:
             self.logger.log(f"{self.our.name}一口将{self.enemy.name}吞掉！")
             return True
         return False
