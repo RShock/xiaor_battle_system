@@ -7,9 +7,12 @@ from xiaor_battle_system.enums import Trigger, DamageType, BuffTag
 from xiaor_battle_system.buff import new_buff
 import uuid
 
+from xiaor_battle_system.gameBoard import GameBoard
+
 
 class Pokemon:
-    def __init__(self, msg_manager: MsgManager, logger: Logger):
+    def __init__(self, msg_manager: MsgManager, logger: Logger, game_board: GameBoard):
+        self.gameBoard = game_board
         self.logger = logger
         self.msg_manager = msg_manager
         self.name = "÷生"
@@ -322,8 +325,9 @@ class Pokemon:
 
         if skill.startswith("诅咒"):
             self.logger.log(f"{self.name}凝视着敌人，让它攻击力下降了{num}%")
+            enemy = self.gameBoard.get_enemy()
             self.msg_manager.register(
-                new_buff(self, Trigger.GET_ATK).name(skill).checker(is_enemy()).handler(
+                new_buff(self, Trigger.GET_ATK).name(skill).checker(lambda pack:pack.get_our() ==enemy).handler(
                     lambda pack: pack.change_atk(add_percent(-num))))
             return
         raise Exception(f"不认识的技能：{skill}")

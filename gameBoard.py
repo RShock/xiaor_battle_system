@@ -3,8 +3,10 @@ from lagom import Container
 from xiaor_battle_system.logger import Logger
 from xiaor_battle_system.msgManager import MsgManager
 from xiaor_battle_system.msgPack import MsgPack
-from xiaor_battle_system.pokemon import Pokemon
-from xiaor_battle_system.tools.tools import get_container
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from xiaor_battle_system.pokemon import Pokemon
 
 
 class GameBoard:
@@ -15,23 +17,23 @@ class GameBoard:
         self.logger = logger
         self.TURN_LIMIT = 50
 
-    def add_ally(self, pokemon: Pokemon):
+    def add_ally(self, pokemon: "Pokemon"):
         self.our = pokemon
 
-    def add_enemy(self, pokemon: Pokemon):
+    def add_enemy(self, pokemon: "Pokemon"):
         self.enemy = pokemon
 
     def init(self):
         self.our.init()
         self.enemy.init()
 
-    def get_enemy(self) -> Pokemon:
+    def get_enemy(self) -> "Pokemon":
         return self.enemy
 
     def battle(self):
         # 第一步比较速度
-        our: Pokemon = self.our
-        enemy: Pokemon = self.enemy
+        our: "Pokemon" = self.our
+        enemy: "Pokemon" = self.enemy
         cnt = 1
 
         while True:
@@ -62,7 +64,7 @@ class GameBoard:
     def print_log(self):
         self.logger.print_log()
 
-    def death_check(self, our:Pokemon, enemy:Pokemon) -> bool:
+    def death_check(self, our: "Pokemon", enemy: "Pokemon") -> bool:
         # 死亡结算
         if our.hp <= 0:
             self.logger.log(f"{self.our.name}倒下了...")
@@ -71,6 +73,3 @@ class GameBoard:
             self.logger.log(f"{self.our.name}一口将{self.enemy.name}吞掉！")
             return True
         return False
-
-
-

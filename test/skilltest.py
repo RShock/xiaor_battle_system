@@ -163,8 +163,8 @@ class TestCases(unittest.TestCase):
         self.pkm1.skillGroup = ["诅咒50"]
         self.gameBoard.init()
         self.result = self.gameBoard.battle()
-        self.assertEqual(self.pkm1.hp, 1)
-        self.assertEqual(self.pkm2.hp, -9)
+        self.assertEqual(self.pkm1.hp, 1000)
+        self.assertEqual(self.pkm2.hp, 930)
 
 
 if __name__ == '__main__':
