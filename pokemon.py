@@ -3,7 +3,7 @@ from xiaor_battle_system.logger import Logger
 from xiaor_battle_system.msgManager import MsgManager
 from xiaor_battle_system.msgPack import MsgPack
 from xiaor_battle_system.tools.tools import get_num
-from xiaor_battle_system.enums import Trigger, DamageType, BuffTag
+from xiaor_battle_system.enums import Trigger, DamageType, BuffTag, BuffPriority
 from xiaor_battle_system.buff import new_buff
 import uuid
 
@@ -18,8 +18,8 @@ class Pokemon:
         self.name = "÷生"
         self.ATK = 20
         self.DEF = 10
-        self.hp = 100       # 血量（随着战斗变化）
-        self.MAX_HP = 100       # 血量上限
+        self.hp = 100  # 血量（随着战斗变化）
+        self.MAX_HP = 100  # 血量上限
         self.SPD = 10  # 速度
         self.id = uuid.uuid1()
         self.lv = 1
@@ -86,7 +86,7 @@ class Pokemon:
 
         # 为每个角色注册自己的独有技能
         Stream(self.skillGroup).for_each(lambda skill: self.init_skill(skill))
-        self.hp = self.get_max_hp()   # 初始化生命值为最大生命值
+        self.hp = self.get_max_hp()  # 初始化生命值为最大生命值
 
     def attack(self, enemy: "Pokemon"):
         self.logger.log(f"{self.name}的攻击")
@@ -146,9 +146,10 @@ class Pokemon:
         if skill.startswith("毒液"):  # 攻击无法直接造成伤害，改为造成x%的真实伤害，持续2回合
             self.logger.log(f"{self.name}的【毒液】发动了！攻击方式变成{num}%持续2回合的真实伤害")
 
-            def disable_normal_atk(pack:MsgPack):
+            def disable_normal_atk(pack: MsgPack):
                 p: MsgPack = pack.get_pack()
-                return pack.get_owner() == p.get_owner() and p.check_trigger(Trigger.ATTACK) and p.check_buff_name("【普攻】")
+                return pack.get_owner() == p.get_owner() and p.check_trigger(Trigger.ATTACK) and p.check_buff_name(
+                    "【普攻】")
 
             def poison(pack: MsgPack):
                 pack.not_allow()
@@ -327,7 +328,8 @@ class Pokemon:
             self.logger.log(f"{self.name}凝视着敌人，让它攻击力下降了{num}%")
             enemy = self.gameBoard.get_enemy()
             self.msg_manager.register(
-                new_buff(self, Trigger.GET_ATK).name(skill).checker(lambda pack:pack.get_our() ==enemy).handler(
+                new_buff(self, Trigger.GET_ATK).name(skill).priority(BuffPriority.CHANGE_ATK_LAST)
+                .checker(lambda pack: pack.get_our() == enemy).handler(
                     lambda pack: pack.change_atk(add_percent(-num))))
             return
         raise Exception(f"不认识的技能：{skill}")
@@ -354,7 +356,7 @@ def is_enemy():
     return _
 
 
-def is_pokemon(p:Pokemon):
+def is_pokemon(p: Pokemon):
     def _(pack: MsgPack):
         return pack.get_our() == p
 

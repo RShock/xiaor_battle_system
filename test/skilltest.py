@@ -160,7 +160,8 @@ class TestCases(unittest.TestCase):
         self.assertEqual(self.pkm2.hp, -208)
 
     def test诅咒(self):
-        self.pkm1.skillGroup = ["诅咒50"]
+        self.pkm1.skillGroup = ["诅咒100"]
+        self.pkm2.skillGroup = ["利爪100"]
         self.gameBoard.init()
         self.result = self.gameBoard.battle()
         self.assertEqual(self.pkm1.hp, 1000)

@@ -5,7 +5,7 @@ from lagom import Container
 from xiaor_battle_system.logger import Logger
 from xiaor_battle_system.msgPack import MsgPack
 from xiaor_battle_system.tools.tools import get_container
-from xiaor_battle_system.enums import Trigger
+from xiaor_battle_system.enums import Trigger, BuffPriority
 
 
 class Buff:
@@ -20,6 +20,7 @@ class Buff:
         self._tag = []  # 这个Buff拥有的标签
         self._del_msg = None  # 删除标签时的提示
         self._checker: list[Callable[[MsgPack], bool]] = []  # 这里传入一个函数，函数为真值则继续执行
+        self._priority = BuffPriority.NORMAL  # buff优先级，基本都是1
 
         def default_handler(pack):
             self.logger.log(f"触发了{self._name}的默认行为")
@@ -35,6 +36,13 @@ class Buff:
     def name(self, name: str) -> "Buff":
         self._name = name
         return self
+
+    def priority(self, priority) -> "Buff":
+        self._priority = priority
+        return self
+
+    def get_priority(self):
+        return self._priority
 
     def checker(self, checker: Callable[[Any], bool]) -> "Buff":
         self._checker.append(checker)

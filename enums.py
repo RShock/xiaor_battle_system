@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, IntEnum
 
 
 # 触发器：buff触发的时机
@@ -25,3 +25,10 @@ class DamageType(Enum):
 
 class BuffTag(Enum):
     POISON_DEBUFF = 0  # 中毒类
+
+
+class BuffPriority(IntEnum):
+    NORMAL = 1
+    CHANGE_ATK_NORMAL = 1  # 修改攻击力，标准优先级
+    CHANGE_ATK_LAST = 2  # 修改攻击力，最后优先级
+

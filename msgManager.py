@@ -13,11 +13,12 @@ class MsgManager:
         self.logger = logger
         self.buffs: dict[Trigger, list["Buff"]] = {}
 
-    def register(self, buff):
+    def register(self, buff: Buff):
         # self.logger.log(f"新增了buff:{buff}")
         if buff.trigger not in self.buffs:
             self.buffs[buff.trigger] = []
         self.buffs[buff.trigger].append(buff)
+        self.buffs[buff.trigger] = sorted(self.buffs[buff.trigger], key=lambda b: b.get_priority())
 
     def send_msg(self, pack: MsgPack):
         def handle(buff, p):
