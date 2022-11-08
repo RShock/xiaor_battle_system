@@ -130,6 +130,16 @@ class TestCases(unittest.TestCase):
         self.assertEqual(self.pkm1.HP, 930)
         self.assertEqual(self.pkm2.HP, 610)
 
+    def test惜别(self):
+        self.pkm1.skillGroup = ["惜别"]
+        self.pkm1.HP = 10
+        self.pkm2.skillGroup = ["惜别"]
+        self.pkm2.HP = 10
+        self.gameBoard.init()
+        self.result = self.gameBoard.battle()
+        self.assertEqual(self.pkm1.HP, 1)
+        self.assertEqual(self.pkm2.HP, -9)
+
 
 if __name__ == '__main__':
     unittest.main()

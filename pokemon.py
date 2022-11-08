@@ -22,12 +22,22 @@ class Pokemon:
         self.lv = 1
 
         self.skillGroup = []
+        self.tag: list[str] = []  # 存放战斗时的一些buff
 
     def __str__(self) -> str:
         return f"【{self.name} 技能列表:{self.skillGroup}】"
 
     def read_pokemon_data(self):
         return
+
+    def add_tag(self, tag: str):
+        self.tag.append(tag)
+
+    def remove_tag(self, tag: str):
+        self.tag.remove(tag)
+
+    def check_tag(self, tag: str):
+        return tag in self.tag
 
     @staticmethod
     def _attack(self, pack: MsgPack):
@@ -290,22 +300,22 @@ class Pokemon:
             return
 
         if skill.startswith("惜别"):
-            self.logger.log(f"{self.name}的暴怒发动了！受伤越重伤害越高，最高增加{num}%！")
-            switch = True
+            global switch
+            TAG = "惜别已使用"
 
             def tear(pack: MsgPack):
                 our: Pokemon = pack.get_our()
-                global switch
-                if switch and our.HP < 0:
+                if not our.check_tag(TAG) and our.HP <= 0:
                     self.logger.log(f"濒死之际，一股意志支撑{our.name}又活了过来")
                     our.HP = 1
-                    switch = False
+                    our.add_tag(TAG)
 
             self.msg_manager.register(
                 new_buff(self, Trigger.TAKEN_DAMAGE).name(skill).checker(is_enemy()).handler(
                     lambda pack: tear(pack)
                 )
             )
+            return
 
         raise Exception(f"不认识的技能：{skill}")
 
