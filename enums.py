@@ -31,4 +31,5 @@ class BuffPriority(IntEnum):
     NORMAL = 1
     CHANGE_ATK_NORMAL = 1  # 修改攻击力，标准优先级
     CHANGE_ATK_LAST = 2  # 修改攻击力，最后优先级
+    CHANGE_DAMAGE_LAST = 2   # 修改伤害，最后优先级
 

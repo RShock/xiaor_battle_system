@@ -167,6 +167,14 @@ class TestCases(unittest.TestCase):
         self.assertEqual(self.pkm1.hp, 1000)
         self.assertEqual(self.pkm2.hp, 930)
 
+    def test抗毒(self):
+        self.pkm1.skillGroup = ["毒液100"]
+        self.pkm2.skillGroup = ["抗毒80"]
+        self.gameBoard.init()
+        self.result = self.gameBoard.battle()
+        self.assertEqual(self.pkm1.hp, 930)
+        self.assertEqual(self.pkm2.hp, 948)
+
 
 if __name__ == '__main__':
     unittest.main()

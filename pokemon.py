@@ -318,7 +318,7 @@ class Pokemon:
                     our.add_tag(TAG)
 
             self.msg_manager.register(
-                new_buff(self, Trigger.TAKEN_DAMAGE).name(skill).checker(is_enemy()).handler(
+                new_buff(self, Trigger.TAKEN_DAMAGE).name("惜别").checker(is_enemy()).handler(
                     lambda pack: tear(pack)
                 )
             )
@@ -331,6 +331,15 @@ class Pokemon:
                 new_buff(self, Trigger.GET_ATK).name(skill).priority(BuffPriority.CHANGE_ATK_LAST)
                 .checker(lambda pack: pack.get_our() == enemy).handler(
                     lambda pack: pack.change_atk(add_percent(-num))))
+            return
+
+        if skill.startswith("抗毒"):
+            self.logger.log(f"{self.name}对毒有抵抗力，受到毒伤害降低{num}%")
+            self.msg_manager.register(
+                new_buff(self, Trigger.DEAL_DAMAGE).name("抗毒").checker(is_enemy())
+                .priority(BuffPriority.CHANGE_DAMAGE_LAST)
+                .checker(lambda pack: pack.check_damage_type(DamageType.POISON))
+                .handler(lambda pack: pack.damage(pack.get_damage() * (100 - num) / 100)))
             return
         raise Exception(f"不认识的技能：{skill}")
 
