@@ -60,9 +60,6 @@ class MsgPack:
     def get_spd(self) -> int:
         return self.data["spd"]
 
-    def check_name(self, name) -> bool:
-        return self.data["name"] == name
-
     def is_our_owner(self) -> bool:
         return self.data["our"] == self.data["buff_owner"]
 

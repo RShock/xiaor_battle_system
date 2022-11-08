@@ -143,9 +143,9 @@ class Pokemon:
         if skill.startswith("毒液"):  # 攻击无法直接造成伤害，改为造成x%的真实伤害，持续2回合
             self.logger.log(f"{self.name}的【毒液】发动了！攻击方式变成{num}%持续2回合的真实伤害")
 
-            def disable_normal_atk(pack):
+            def disable_normal_atk(pack:MsgPack):
                 p: MsgPack = pack.get_pack()
-                return p.check_name(self.name) and p.check_trigger(Trigger.ATTACK) and p.check_buff_name("【普攻】")
+                return pack.get_owner() == p.get_owner() and p.check_trigger(Trigger.ATTACK) and p.check_buff_name("【普攻】")
 
             def poison(pack: MsgPack):
                 pack.not_allow()
