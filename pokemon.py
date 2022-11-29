@@ -1,20 +1,22 @@
-from xiaor_battle_system.tools.stream import Stream
-from xiaor_battle_system.logger import Logger
-from xiaor_battle_system.msgManager import MsgManager
-from xiaor_battle_system.msgPack import MsgPack
-from xiaor_battle_system.tools.tools import get_num
-from xiaor_battle_system.enums import Trigger, DamageType, BuffTag, BuffPriority
-from xiaor_battle_system.buff import new_buff
+import math
+
+from .tools.stream import Stream
+from .logger import Logger
+from .msgManager import MsgManager
+from .msgPack import MsgPack
+from .tools.tools import get_num
+from .enums import Trigger, DamageType, BuffTag, BuffPriority
+from .buff import new_buff
 import uuid
 
-from xiaor_battle_system.gameBoard import GameBoard
+from .gameBoard import GameBoard
 
 
 class Pokemon:
     def __init__(self, msg_manager: MsgManager, logger: Logger, game_board: GameBoard):
-        self.gameBoard = game_board
-        self.logger = logger
-        self.msg_manager = msg_manager
+        self.gameBoard: GameBoard = game_board
+        self.logger: Logger = logger
+        self.msg_manager: MsgManager = msg_manager
         self.name = "÷生"
         self.ATK = 20
         self.DEF = 10
@@ -84,6 +86,11 @@ class Pokemon:
             .checker(is_self())
             .handler(attack_handle))
 
+        # 等级对数值的影响（每升1级 1.1倍）
+        change_atk(self, "等级", multi_eval(lambda: math.pow(1.1, self.get_lv() - 1)))
+        change_def(self, "等级", multi_eval(lambda: math.pow(1.1, self.get_lv() - 1)))
+        change_hp(self, "等级", multi_eval(lambda: math.pow(1.1, self.get_lv() - 1)))
+
         # 为每个角色注册自己的独有技能
         Stream(self.skillGroup).for_each(lambda skill: self.init_skill(skill))
         self.hp = self.get_max_hp()  # 初始化生命值为最大生命值
@@ -95,29 +102,39 @@ class Pokemon:
     def get_atk(self):
         pack = MsgPack.get_atk_pack().atk(self.ATK).our(self)
         self.msg_manager.send_msg(pack)
-        return pack.get_atk()
+        return int(pack.get_atk())
 
     def get_def(self):
         pack = MsgPack.get_def_pack().defe(self.DEF).our(self)
         self.msg_manager.send_msg(pack)
-        return pack.get_def()
+        return int(pack.get_def())
+
+    def get_lv(self):
+        pack = MsgPack.get_lv_pack().lv(self.lv).our(self)
+        self.msg_manager.send_msg(pack)
+        return int(pack.get_lv())
 
     def get_max_hp(self):
         pack = MsgPack.get_max_hp_pack().hp(self.MAX_HP).our(self)
         self.msg_manager.send_msg(pack)
-        return pack.get_max_hp()
+        return int(pack.get_max_hp())
+
+    def get_spd(self):
+        pack = MsgPack.get_spd_pack().spd(self.SPD).our(self)
+        self.msg_manager.send_msg(pack)
+        return int(pack.get_spd())
 
     def get_life_inc_spd(self):
         pack = MsgPack.get_life_inc_spd_pack().life_inc_spd(1).our(self)
         self.msg_manager.send_msg(pack)
-        return pack.get_life_inc_spd()
+        return int(pack.get_life_inc_spd())
 
     def init_skill(self, skill: str):
         num = get_num(skill)
 
         if skill.startswith("利爪"):
-            self.logger.log(f"{self.name}的【利爪】发动了！攻击力增加了{num}点")
-            change_atk(self, skill, add_num(num))
+            self.logger.log(f"{self.name}的【利爪】发动了！攻击力增加了{num}%")
+            change_atk(self, skill, add_percent(num))
             return
 
         if skill.startswith("尖角"):
@@ -246,20 +263,18 @@ class Pokemon:
             return
 
         if skill.startswith("攻击成长"):
-            self.logger.log(f"{self.name}的【攻击成长】使其攻击增加了{self.lv - 1} * {num}点")
-            change_atk(self, skill, add_num(num * (self.lv - 1)))
+            self.logger.log(f"{self.name}的【攻击成长】使其攻击增加了{self.get_lv() - 1} * {num}点")
+            change_atk(self, skill, add_num(num * (self.get_lv() - 1)))
             return
 
         if skill.startswith("防御成长"):
-            self.logger.log(f"{self.name}的【攻击成长】使其防御增加了{self.lv - 1} * {num}点")
-            change_def(self, skill, add_num(num * (self.lv - 1)))
+            self.logger.log(f"{self.name}的【防御成长】使其防御增加了{self.get_lv() - 1} * {num}点")
+            change_def(self, skill, add_num(num * (self.get_lv() - 1)))
             return
 
         if skill.startswith("地区霸主"):
             self.logger.log(f"看起来这片区域的主人出现了...")
-            change_atk(self, skill, multi(1.331))  # 相当于高3级的敌人(1.1^3)
-            change_def(self, skill, multi(1.331))
-            change_hp(self, skill, multi(1.331))
+            change_lv(self, skill, add_num(1))
             # 技能槽位的增加目前仅仅存在于设定之中，怪物的技能数量其实是填表决定的，并非靠这个技能获得
             return
 
@@ -299,7 +314,7 @@ class Pokemon:
                 our: Pokemon = pack.get_our()
                 max_hp = our.get_max_hp()
                 hp = pack.get_our().hp
-                percent = int((1 - hp / max_hp) * num)
+                percent = (1 - hp / max_hp) * num
                 pack.change_atk(add_percent(percent))
 
             self.msg_manager.register(
@@ -379,16 +394,30 @@ def add_num(num):
     return _
 
 
+def add_num_eval(func):
+    def _(origin):
+        return origin + func()
+
+    return _
+
+
 def multi(num):
     def _(origin):
-        return int(origin * num)
+        return origin * num
+
+    return _
+
+
+def multi_eval(func):
+    def _(origin):
+        return origin * func()
 
     return _
 
 
 def add_percent(num):
     def _(origin):
-        return int(origin * (1 + num / 100))
+        return origin * (1 + num / 100)
 
     return _
 
@@ -409,3 +438,9 @@ def change_hp(self, skill, func):
     self.msg_manager.register(
         new_buff(self, Trigger.GET_HP).name(skill).checker(is_self()).handler(
             lambda pack: pack.change_hp(func)))
+
+
+def change_lv(self, skill, func):
+    self.msg_manager.register(
+        new_buff(self, Trigger.GET_LV).name(skill).checker(is_self()).handler(
+            lambda pack: pack.change_lv(func)))

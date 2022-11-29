@@ -2,10 +2,10 @@ from typing import Callable, Any
 
 from lagom import Container
 
-from xiaor_battle_system.logger import Logger
-from xiaor_battle_system.msgPack import MsgPack
-from xiaor_battle_system.tools.tools import get_container
-from xiaor_battle_system.enums import Trigger, BuffPriority
+from .logger import Logger
+from .msgPack import MsgPack
+from .tools.tools import get_container
+from .enums import Trigger, BuffPriority
 
 
 class Buff:

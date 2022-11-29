@@ -14,6 +14,7 @@ class Trigger(Enum):
     GET_LIFE_INC_SPD = 8  # 计算生命回复速度时
     DEAL_DAMAGE = 9  # 即将造成伤害（约定如果是体力流失，owner是空的）
     TAKEN_DAMAGE = 10  # 受到伤害（包括体力流失，一般用于计算死亡事件）
+    GET_LV = 11 # 计算等级时
 
 
 class DamageType(Enum):

@@ -1,6 +1,7 @@
 class Logger:
     _log = ""
-    _debug = True
+    _debug_log = ""
+    _debug = False
 
     def log(self, string):
         if self._debug:
@@ -12,5 +13,12 @@ class Logger:
         print(self._log)
 
     def clean(self):
-        _log = ""
+        self._log = ""
         pass
+
+    def get_log(self):
+        # print(self._log)
+        return self._log
+
+    def debug_log(self, string):
+        print(string)

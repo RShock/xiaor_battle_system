@@ -1,12 +1,13 @@
 import unittest
 
-from xiaor_battle_system.gameBoard import GameBoard
-from xiaor_battle_system.logger import Logger
-from xiaor_battle_system.msgManager import MsgManager
-from xiaor_battle_system.pokemon import Pokemon
-from xiaor_battle_system.tools.tools import get_container
+from ..gameBoard import GameBoard
+from ..logger import Logger
+from ..msgManager import MsgManager
+from ..pokemon import Pokemon
+from ..tools.tools import get_container
 
 
+# 这个测试明明是单元测试不知为何放进项目里就跑不了了 气死我了
 class TestCases(unittest.TestCase):
     container = None
     logger = None
@@ -42,7 +43,7 @@ class TestCases(unittest.TestCase):
         self.msgManager.clean()
         self.logger.clean()
 
-        if self.result:
+        if self.result == '我方胜利':
             print(f"{self.pkm1.name}胜利")
         else:
             print(f"{self.pkm1.name}战败！")
@@ -99,7 +100,7 @@ class TestCases(unittest.TestCase):
         self.gameBoard.init()
         self.result = self.gameBoard.battle()
         self.assertEqual(self.pkm1.hp, 930)
-        self.assertEqual(self.pkm2.hp, 870)
+        self.assertEqual(self.pkm2.hp, 1000)
 
     def test连击会导致攻击力归零(self):
         self.pkm1.skillGroup = ["毒液50", "连击"]

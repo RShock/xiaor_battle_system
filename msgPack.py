@@ -1,4 +1,4 @@
-from xiaor_battle_system.enums import Trigger, DamageType
+from .enums import Trigger, DamageType
 
 
 # 一坨getter和setter 用来保证不会写错变量名
@@ -23,6 +23,10 @@ class MsgPack:
         self.data["hp"] = hp
         return self
 
+    def lv(self, lv) -> "MsgPack":
+        self.data["lv"] = lv
+        return self
+
     def life_inc_spd(self, spd) -> "MsgPack":
         self.data["life_inc_spd"] = spd
         return self
@@ -39,8 +43,14 @@ class MsgPack:
     def change_atk(self, apply) -> None:
         self.data["atk"] = apply(self.get_atk())
 
+    def change_lv(self, apply) -> None:
+        self.data["lv"] = apply(self.get_lv())
+
     def get_def(self) -> int:
         return self.data["def"]
+
+    def get_lv(self) -> int:
+        return self.data["lv"]
 
     def change_def(self, apply) -> None:
         self.data["def"] = apply(self.get_def())
@@ -111,7 +121,7 @@ class MsgPack:
         self.data["buff_owner"] = buff_owner
         return self
 
-    def get_owner(self):
+    def get_owner(self) -> "Pokemon":
         return self.data["buff_owner"]
 
     def check_owner(self, owner):
@@ -178,8 +188,16 @@ class MsgPack:
         return MsgPack.builder().trigger_type(Trigger.GET_DEF)
 
     @staticmethod
+    def get_lv_pack():
+        return MsgPack.builder().trigger_type(Trigger.GET_LV)
+
+    @staticmethod
     def get_max_hp_pack():
         return MsgPack.builder().trigger_type(Trigger.GET_HP)
+
+    @staticmethod
+    def get_spd_pack():
+        return MsgPack.builder().trigger_type(Trigger.GET_SPD)
 
     @staticmethod
     def get_life_inc_spd_pack():

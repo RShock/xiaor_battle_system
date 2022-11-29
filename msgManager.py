@@ -1,10 +1,9 @@
-from typing import List
 
-from xiaor_battle_system.logger import Logger
-from xiaor_battle_system.tools.stream import Stream
-from xiaor_battle_system.buff import Buff
-from xiaor_battle_system.msgPack import MsgPack
-from xiaor_battle_system.enums import Trigger
+from .logger import Logger
+from .tools.stream import Stream
+from .buff import Buff
+from .msgPack import MsgPack
+from .enums import Trigger
 
 
 class MsgManager:
@@ -26,14 +25,23 @@ class MsgManager:
             # 也就是简化的扭曲机制，把普攻扭曲成了毒液攻击，但是没法做到非常细节的扭曲。
             # 目前只有攻击会被打断，如果每个buff都需要判断是否打断，游戏速度会变慢很多
             if pack.check_trigger(Trigger.ACTIVE) or not pack.check_trigger(Trigger.ATTACK):  # 这里可以添加需要check的类型，减少运算量
+                DEBUG = None
+                if DEBUG:
+                    if pack.check_trigger(DEBUG):
+                        self.logger.debug_log(f"before{p.get_def()}")
+
                 buff.handle(p)
+                if DEBUG:
+                    if pack.check_trigger(DEBUG):
+                        self.logger.debug_log(f"after{p.get_def()}")
+
             else:
                 _pack: MsgPack = MsgPack.active_pack().pack(p)
                 self.send_msg(_pack)
                 if _pack.get_allow():
                     buff.handle(p)
-                else:
-                    self.logger.log(f"{buff}被阻止了")
+                # else:
+                #     self.logger.log(f"{buff}被阻止了")
 
         # if pack.check_trigger(Trigger.ATTACK):
         #     self.logger.log(f"{pack.get_our()}atk")
@@ -48,13 +56,6 @@ class MsgManager:
             if not buff.check(pack):
                 continue
             handle(buff, pack)
-        # Stream(self.buffs).filter(
-        #     lambda buff: pack.check_trigger(buff.trigger)
-        # ).filter(
-        #     lambda buff: buff.check(pack)
-        # ).for_each(
-        #     lambda buff: handle(buff, pack)
-        # )
 
     # 回合结束时需要删除一些过期的buff
     def turn_end(self):
