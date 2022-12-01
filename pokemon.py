@@ -1,4 +1,5 @@
 import math
+import random
 
 from .tools.stream import Stream
 from .logger import Logger
@@ -25,6 +26,9 @@ class Pokemon:
         self.SPD = 10  # 速度
         self.id = uuid.uuid1()
         self.lv = 1
+        # 这两个外部不需要赋值
+        self.CRIT = 0  # 暴击率
+        self.CSD = 2  # 暴击伤害
 
         self.skillGroup = []
         self.tag: list[str] = []  # 存放战斗时的一些buff
@@ -64,7 +68,8 @@ class Pokemon:
         # 发送即将造成伤害的包，以此计算属性增减伤等属性
         pack2 = MsgPack.damage_pack(our, pack.get_enemy(), dmg, DamageType.NORMAL)
         self.msg_manager.send_msg(pack2)
-        enemy.hp -= pack2.get_damage()
+        dmg = pack2.get_damage()
+        enemy.hp -= dmg
         self.logger.log(f"{our.name}对{enemy.name}造成了{dmg}点伤害，{enemy.name}还有{enemy.hp}点血")
         # 被打了，再发一个包
         pack3 = MsgPack.taken_damage_pack(pack.get_enemy(), our, pack2.get_damage(), Trigger.ATTACK, DamageType.NORMAL)
@@ -87,9 +92,9 @@ class Pokemon:
             .handler(attack_handle))
 
         # 等级对数值的影响（每升1级 1.1倍）
-        change_atk(self, "等级", multi_eval(lambda: math.pow(1.1, self.get_lv() - 1)))
-        change_def(self, "等级", multi_eval(lambda: math.pow(1.1, self.get_lv() - 1)))
-        change_hp(self, "等级", multi_eval(lambda: math.pow(1.1, self.get_lv() - 1)))
+        self.change_atk("等级", multi_eval(lambda: math.pow(1.1, self.get_lv() - 1)))
+        self.change_def("等级", multi_eval(lambda: math.pow(1.1, self.get_lv() - 1)))
+        self.change_hp("等级", multi_eval(lambda: math.pow(1.1, self.get_lv() - 1)))
 
         # 为每个角色注册自己的独有技能
         Stream(self.skillGroup).for_each(lambda skill: self.init_skill(skill))
@@ -129,35 +134,38 @@ class Pokemon:
         self.msg_manager.send_msg(pack)
         return int(pack.get_life_inc_spd())
 
+    # 获取当前暴击率
+    def get_crit(self):
+        pack = MsgPack.get_crit_pack().crit(self.CRIT).our(self)
+        self.msg_manager.send_msg(pack)
+        return int(pack.get_crit())
+
     def init_skill(self, skill: str):
         num = get_num(skill)
 
         if skill.startswith("利爪"):
             self.logger.log(f"{self.name}的【利爪】发动了！攻击力增加了{num}%")
-            change_atk(self, skill, add_percent(num))
+            self.change_atk(skill, add_percent(num))
             return
 
         if skill.startswith("尖角"):
             self.logger.log(f"{self.name}的【尖角】发动了！攻击力增加了{num}点")
-            change_atk(self, skill, add_num(num))
+            self.change_atk(skill, add_num(num))
             return
 
         if skill.startswith("鳞片"):
             self.logger.log(f"{self.name}的【鳞片】发动了！防御力增加了{num}点")
-            change_def(self, skill, add_num(num))
+            self.change_def(skill, add_num(num))
             return
 
         if skill.startswith("机敏"):
             self.logger.log(f"{self.name}的【机敏】发动了！速度增加了{num}点")
-
-            self.msg_manager.register(
-                new_buff(self, Trigger.GET_SPD).name(skill).checker(is_self()).handler(
-                    lambda pack: pack.change_spd(add_num(num))))
+            self.change_spd(skill, add_num(num))
             return
 
         if skill.startswith("肉质"):
             self.logger.log(f"{self.name}的【肉质】发动了！生命增加了{num}点")
-            change_hp(self, skill, add_num(num))
+            self.change_hp(skill, add_num(num))
             return
 
         if skill.startswith("毒液"):  # 攻击无法直接造成伤害，改为造成x%的真实伤害，持续2回合
@@ -198,7 +206,7 @@ class Pokemon:
         if skill.startswith("连击"):
             self.logger.log(f"{self.name}的【连击】发动了！攻击力归零，但是每回合攻击2次！")
             # 攻击力归零
-            change_atk(self, skill, multi(0))
+            self.change_atk(skill, multi(0))
 
             # 每回合攻击2次
             def attack_handle(pack: MsgPack):
@@ -226,16 +234,26 @@ class Pokemon:
             self.logger.log(f"{self.name}的【不屈】发动了！最大生命值增加{num}%")
             self.msg_manager.register(
                 new_buff(self, Trigger.GET_HP).name(skill).checker(is_self()).handler(
-                    lambda pack: pack.change_hp(add_percent(num))))
+                    lambda pack: pack.change_max_hp(add_percent(num))))
             return
 
         if skill.startswith("野性"):
-            self.logger.log(f"{self.name}的【野性】发动了！最大攻击力增加{num}%")
-            self.msg_manager.register(
-                new_buff(self, Trigger.GET_ATK).name(skill).checker(is_self()).handler(
-                    lambda pack: pack.change_atk(add_percent(num))))
+            self.logger.log(f"{self.name}的【野性】发动了！最终伤害增加+{num}%")
+            self.change_damage("野性", add_percent(num))
             return
+        # todo 尖牙
+        if skill.startswith("尖牙"):
+            self.logger.log(f"{self.name}的【尖牙】发动了！暴击率+{num}%")
 
+            def critical_hit(pack):
+                rand = random.uniform(0, 1)
+
+            self.msg_manager.register(
+                new_buff(self, Trigger.DEAL_DAMAGE).name(skill).checker(is_self())
+                .handler(lambda pack: pack.change_damage(func)))
+
+            self.change_damage("尖牙", add_percent(num))
+            return
         if skill.startswith("坚韧"):
             self.logger.log(f"{self.name}的【坚韧】发动了！最大防御力增加{num}%")
             self.msg_manager.register(
@@ -264,17 +282,17 @@ class Pokemon:
 
         if skill.startswith("攻击成长"):
             self.logger.log(f"{self.name}的【攻击成长】使其攻击增加了{self.get_lv() - 1} * {num}点")
-            change_atk(self, skill, add_num(num * (self.get_lv() - 1)))
+            self.change_atk(skill, add_num(num * (self.get_lv() - 1)))
             return
 
         if skill.startswith("防御成长"):
             self.logger.log(f"{self.name}的【防御成长】使其防御增加了{self.get_lv() - 1} * {num}点")
-            change_def(self, skill, add_num(num * (self.get_lv() - 1)))
+            self.change_def(skill, add_num(num * (self.get_lv() - 1)))
             return
 
         if skill.startswith("地区霸主"):
             self.logger.log(f"看起来这片区域的主人出现了...")
-            change_lv(self, skill, add_num(1))
+            self.change_lv(skill, add_num(1))
             # 技能槽位的增加目前仅仅存在于设定之中，怪物的技能数量其实是填表决定的，并非靠这个技能获得
             return
 
@@ -358,6 +376,38 @@ class Pokemon:
             return
         raise Exception(f"不认识的技能：{skill}")
 
+    def change_atk(self: "Pokemon", skill, func):
+        self.msg_manager.register(
+            new_buff(self, Trigger.GET_ATK).name(skill).checker(is_self()).handler(
+                lambda pack: pack.change_atk(func)))
+
+    def change_def(self: "Pokemon", skill, func):
+        self.msg_manager.register(
+            new_buff(self, Trigger.GET_DEF).name(skill).checker(is_self()).handler(
+                lambda pack: pack.change_def(func)))
+
+    def change_hp(self: "Pokemon", skill, func):
+        self.msg_manager.register(
+            new_buff(self, Trigger.GET_HP).name(skill).checker(is_self()).handler(
+                lambda pack: pack.change_max_hp(func)))
+
+    def change_lv(self: "Pokemon", skill, func):
+        self.msg_manager.register(
+            new_buff(self, Trigger.GET_LV).name(skill).checker(is_self()).handler(
+                lambda pack: pack.change_lv(func)))
+
+    def change_damage(self, skill, func):
+        self.msg_manager.register(
+            new_buff(self, Trigger.DEAL_DAMAGE).name(skill).checker(is_self())
+            .handler(lambda pack: pack.change_damage(func)))
+
+    def change_spd(self, skill, func):
+        self.msg_manager.register(
+            new_buff(self, Trigger.GET_SPD).name(skill).checker(is_self())
+            .handler(lambda pack: pack.change_spd(func)))
+
+
+
 
 #
 # def check_id(name):
@@ -420,27 +470,3 @@ def add_percent(num):
         return origin * (1 + num / 100)
 
     return _
-
-
-def change_atk(self: Pokemon, skill, func):
-    self.msg_manager.register(
-        new_buff(self, Trigger.GET_ATK).name(skill).checker(is_self()).handler(
-            lambda pack: pack.change_atk(func)))
-
-
-def change_def(self, skill, func):
-    self.msg_manager.register(
-        new_buff(self, Trigger.GET_DEF).name(skill).checker(is_self()).handler(
-            lambda pack: pack.change_def(func)))
-
-
-def change_hp(self, skill, func):
-    self.msg_manager.register(
-        new_buff(self, Trigger.GET_HP).name(skill).checker(is_self()).handler(
-            lambda pack: pack.change_hp(func)))
-
-
-def change_lv(self, skill, func):
-    self.msg_manager.register(
-        new_buff(self, Trigger.GET_LV).name(skill).checker(is_self()).handler(
-            lambda pack: pack.change_lv(func)))

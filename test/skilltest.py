@@ -95,12 +95,12 @@ class TestCases(unittest.TestCase):
         self.assertEqual(self.pkm2.hp, 870)
 
     def test毒攻击无法被反击(self):
-        self.pkm1.skillGroup = ["毒液50", "连击", "利爪10"]
+        self.pkm1.skillGroup = ["毒液50", "连击", "尖角10"]
         self.pkm2.skillGroup = ["反击"]
         self.gameBoard.init()
         self.result = self.gameBoard.battle()
         self.assertEqual(self.pkm1.hp, 930)
-        self.assertEqual(self.pkm2.hp, 1000)
+        self.assertEqual(self.pkm2.hp, 870)
 
     def test连击会导致攻击力归零(self):
         self.pkm1.skillGroup = ["毒液50", "连击"]
@@ -176,6 +176,13 @@ class TestCases(unittest.TestCase):
         self.assertEqual(self.pkm1.hp, 930)
         self.assertEqual(self.pkm2.hp, 948)
 
+    def test野性(self):
+        self.pkm1.skillGroup = ["尖角10", "野性100"]
+        self.pkm2.skillGroup = []
+        self.gameBoard.init()
+        self.result = self.gameBoard.battle()
+        self.assertEqual(self.pkm1.hp, 930)
+        self.assertEqual(self.pkm2.hp, 720)
 
 if __name__ == '__main__':
     unittest.main()

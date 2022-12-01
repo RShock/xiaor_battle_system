@@ -14,7 +14,9 @@ class Trigger(Enum):
     GET_LIFE_INC_SPD = 8  # 计算生命回复速度时
     DEAL_DAMAGE = 9  # 即将造成伤害（约定如果是体力流失，owner是空的）
     TAKEN_DAMAGE = 10  # 受到伤害（包括体力流失，一般用于计算死亡事件）
-    GET_LV = 11 # 计算等级时
+    GET_LV = 11  # 计算等级时
+    GET_CRIT = 12  # 计算暴击率时
+    GET_CSD = 13  # 计算暴击伤害时
 
 
 class DamageType(Enum):
@@ -32,5 +34,4 @@ class BuffPriority(IntEnum):
     NORMAL = 1
     CHANGE_ATK_NORMAL = 1  # 修改攻击力，标准优先级
     CHANGE_ATK_LAST = 2  # 修改攻击力，最后优先级
-    CHANGE_DAMAGE_LAST = 2   # 修改伤害，最后优先级
-
+    CHANGE_DAMAGE_LAST = 2  # 修改伤害，最后优先级

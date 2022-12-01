@@ -28,12 +28,12 @@ class MsgManager:
                 DEBUG = None
                 if DEBUG:
                     if pack.check_trigger(DEBUG):
-                        self.logger.debug_log(f"before{p.get_def()}")
+                        self.logger.debug_log(f"before{p.get_damage()}")
 
                 buff.handle(p)
                 if DEBUG:
                     if pack.check_trigger(DEBUG):
-                        self.logger.debug_log(f"after{p.get_def()}")
+                        self.logger.debug_log(f"after{p.get_damage()}")
 
             else:
                 _pack: MsgPack = MsgPack.active_pack().pack(p)
