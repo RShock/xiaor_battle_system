@@ -69,8 +69,17 @@ class Pokemon:
         pack2 = MsgPack.damage_pack(our, pack.get_enemy(), dmg, DamageType.NORMAL)
         self.msg_manager.send_msg(pack2)
         dmg = pack2.get_damage()
-        enemy.hp -= dmg
-        self.logger.log(f"{our.name}对{enemy.name}造成了{dmg}点伤害，{enemy.name}还有{enemy.hp}点血")
+        # 暴击结算（暂且放在外面,后面复杂了可能移动到buff系统里面）
+        crit = False
+        if random.random() < self.get_crit()/100:
+            dmg = round(dmg * self.get_csd())
+            crit = True
+        enemy.hp = round(enemy.hp - dmg, 1)
+        if crit:
+            msg = f"暴击💥！{our.name}对{enemy.name}造成{dmg}点伤害，{enemy.name}hp:{enemy.hp}"
+        else:
+            msg = f"{our.name}对{enemy.name}造成{dmg}点伤害，{enemy.name}hp:{enemy.hp}"
+        self.logger.log(msg)
         # 被打了，再发一个包
         pack3 = MsgPack.taken_damage_pack(pack.get_enemy(), our, pack2.get_damage(), Trigger.ATTACK, DamageType.NORMAL)
         self.msg_manager.send_msg(pack3)
@@ -134,11 +143,17 @@ class Pokemon:
         self.msg_manager.send_msg(pack)
         return int(pack.get_life_inc_spd())
 
+
     # 获取当前暴击率
     def get_crit(self):
         pack = MsgPack.get_crit_pack().crit(self.CRIT).our(self)
         self.msg_manager.send_msg(pack)
         return int(pack.get_crit())
+
+    def get_csd(self):
+        pack = MsgPack.get_csd_pack().csd(self.CSD).our(self)
+        self.msg_manager.send_msg(pack)
+        return int(pack.get_csd())
 
     def init_skill(self, skill: str):
         num = get_num(skill)
@@ -244,15 +259,7 @@ class Pokemon:
         # todo 尖牙
         if skill.startswith("尖牙"):
             self.logger.log(f"{self.name}的【尖牙】发动了！暴击率+{num}%")
-
-            def critical_hit(pack):
-                rand = random.uniform(0, 1)
-
-            self.msg_manager.register(
-                new_buff(self, Trigger.DEAL_DAMAGE).name(skill).checker(is_self())
-                .handler(lambda pack: pack.change_damage(func)))
-
-            self.change_damage("尖牙", add_percent(num))
+            self.change_crit("尖牙", add_num(num))
             return
         if skill.startswith("坚韧"):
             self.logger.log(f"{self.name}的【坚韧】发动了！最大防御力增加{num}%")
@@ -406,7 +413,15 @@ class Pokemon:
             new_buff(self, Trigger.GET_SPD).name(skill).checker(is_self())
             .handler(lambda pack: pack.change_spd(func)))
 
+    def change_crit(self, skill, func):
+        self.msg_manager.register(
+            new_buff(self, Trigger.GET_CRIT).name(skill).checker(is_self())
+            .handler(lambda pack: pack.change_crit(func)))
 
+    def change_csd(self, skill, func):
+        self.msg_manager.register(
+            new_buff(self, Trigger.GET_CSD).name(skill).checker(is_self())
+            .handler(lambda pack: pack.change_crit(func)))
 
 
 #

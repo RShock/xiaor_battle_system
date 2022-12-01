@@ -88,8 +88,22 @@ class MsgPack:
         self.data["crit"] = crit
         return self
 
-    # 伤害
+    def get_crit(self) -> int:
+        return self.data["crit"]
 
+    def change_crit(self, apply) -> None:
+        self.data["crit"] = apply(self.get_crit())
+
+    # 暴击伤害
+    def csd(self, crit) -> "MsgPack":
+        self.data["csd"] = crit
+        return self
+
+    def get_csd(self) -> int:
+        return self.data["csd"]
+
+    def change_csd(self, apply) -> None:
+        self.data["csd"] = apply(self.get_csd())
 
     # 受到的伤害（来自be_attack）
     def damage(self, num) -> "MsgPack":
@@ -97,7 +111,7 @@ class MsgPack:
         return self
 
     def get_damage(self) -> int:
-        return self.data["damage"]
+        return round(self.data["damage"],1)
 
     def change_damage(self, apply) -> None:
         self.data["damage"] = apply(self.get_damage())

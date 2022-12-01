@@ -184,6 +184,14 @@ class TestCases(unittest.TestCase):
         self.assertEqual(self.pkm1.hp, 930)
         self.assertEqual(self.pkm2.hp, 720)
 
+    def test尖牙(self):
+        self.pkm1.skillGroup = ["尖牙20"]
+        self.pkm2.skillGroup = []
+        self.gameBoard.init()
+        self.result = self.gameBoard.battle()
+        self.assertEqual(self.pkm1.hp, 930)
+        self.assertEqual(self.pkm2.hp, 860)
+
 if __name__ == '__main__':
     unittest.main()
 
